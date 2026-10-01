@@ -123,6 +123,8 @@ def view() -> None:
     st.caption(f"Binance spot, public market data · {rep.symbols} most-traded USDT pairs · daily candles close 00:00 UTC "
                f"(05:30 IST); signals use the last completed day ({rep.session:%d %b %Y}) · updated {rep.as_of:%H:%M} IST · "
                "paper only, no orders are placed" + (" · DEMO MODE: synthetic coins" if DEMO else ""))
+    from views.engines import closest_to_buy
+    closest_to_buy(rep.quality, eng.q, "BTC", False, exclude=c.benchmark)
     cov = rep.coverage or {}
     if cov and cov.get("used", 0) < cov.get("requested", 0):
         why = []

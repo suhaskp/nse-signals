@@ -824,6 +824,8 @@ def render(rep) -> None:
     check, check_note = morning_check(engine, rep, now_ist(), fetch=not background_running())
     if check_note and check is None:
         st.info(check_note)
+    from views.engines import closest_to_buy
+    closest_to_buy(rep.quality, cfg.buy_quality, "Nifty", bool(rep.data_warning))
     daily_briefing(rep)
     readiness_panel(rep)
     from views.engines import simple_view

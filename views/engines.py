@@ -1,6 +1,7 @@
 """Dashboard access to the shared engines (see engines_core.py), plus a shared progress panel."""
 from datetime import datetime
 
+import pandas as pd
 import streamlit as st
 
 from engines_core import DEMO, background_running, get_crypto, get_engines, get_preopen, now_ist, start_background
@@ -27,3 +28,28 @@ def simple_view(default: bool) -> bool:
     env = os.getenv("PIPELINE_SIMPLE_VIEW")
     base = default if env is None else env == "1"
     return bool(st.session_state.get("simple_view", base))
+
+
+def closest_to_buy(qd: pd.DataFrame | None, q, market: str, data_stale: bool, exclude: str | None = None) -> None:
+    """Top-of-page reassurance: the most complete setup and exactly what it still needs. No timing forecasts."""
+    import decisions
+    if qd is None or qd.empty:
+        return
+    live = qd[qd["State"].isin(["BUY NOW", "WATCH CLOSELY", "WAIT"])]
+    if exclude:
+        live = live[live["Ticker"] != exclude]
+    if live.empty:
+        st.caption("No setup is close to a BUY right now. The system is waiting for one to form.")
+        return
+    r = live.sort_values("Readiness", ascending=False).iloc[0]
+    missing = decisions.needs(r, q, data_stale, market)
+    with st.container(border=True):
+        if not missing:
+            st.markdown(f"**🟢 {r['Ticker']} passes every check** · readiness {int(r['Readiness'])}/100")
+            return
+        st.markdown(f"**Closest to a BUY: {'🟡' if r['State'] == 'WATCH CLOSELY' else '⚪'} {r['Ticker']}** · "
+                    f"readiness {int(r['Readiness'])}/100")
+        st.markdown("**Needs:** " + " · ".join(f"🔴 {m}" for m in missing) + "  \n**Everything else:** ✅ passes")
+        st.caption("A BUY becomes possible only if all of these confirm on a completed daily candle. No forecast of "
+                   "when: don't anticipate the signal. Buying before confirmation is a different strategy from the one "
+                   "that was tested.")

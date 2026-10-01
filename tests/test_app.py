@@ -158,6 +158,8 @@ def test_crypto_page_renders(tmp_path, monkeypatch):
     text = " ".join(m.value for m in at.markdown) + " ".join(x.value for x in list(at.warning) + list(at.error) + list(at.success))
     assert "Market environment" in text and "Trade opportunity" in text and "Market environment score" in text
     assert "BTC vs altcoins vs cash" in text
+    assert "Closest to a BUY" in text or "passes every check" in text or "No setup is close" in " ".join(
+        c.value for c in at.caption)
     assert any(m.label == "Market (BTC)" for m in at.metric)
     assert len(at.button) == 0
 

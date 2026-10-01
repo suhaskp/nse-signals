@@ -78,3 +78,19 @@ def test_report_has_regime_detail_and_card_inputs(tmp_path):
     assert rep.regime_detail is not None and rep.regime_detail["state"] in {
         "Risk-on", "Risk-on, weakening", "Transition", "Risk-off, improving", "Risk-off"}
     assert {"Days on watch", "SMA50", "Readiness"} <= set(rep.quality.columns)
+
+
+def test_needs_list_is_short_and_specific():
+    import decisions
+    from config.config import BuyQualityConfig
+    q = BuyQualityConfig()
+    r = pd.Series({"g_trend": True, "g_liquidity": True, "g_breakout": False, "g_close_strength": True,
+                   "g_not_extended": True, "g_volume": False, "g_stop_ok": True, "g_reward_risk": False,
+                   "g_regime": True, "Breakout status": "🟡 -1.8%: approaching", "Breakout level": 105.0,
+                   "Volume x avg": 1.2, "R:R": np.nan, "Regime state": "on", "To breakout %": 1.8})
+    out = decisions.needs(r, q, False, "BTC")
+    assert out == ["Breakout: 1.8% away (close above 105)", "Volume: 1.2× → needs 1.5×"]
+    done = r.copy()
+    done[["g_breakout", "g_volume", "g_reward_risk"]] = True
+    done["R:R"] = 3.0
+    assert decisions.needs(done, q, False) == []

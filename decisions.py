@@ -5,6 +5,7 @@ the card, the briefing and the journal can never give different reasons for the 
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from config.config import BuyQualityConfig
@@ -63,3 +64,20 @@ def blockers(r: pd.Series, q: BuyQualityConfig, data_stale: bool, market: str = 
 def short_blocker(text: str) -> str:
     """'Market regime allows BUYs (your rule; now: off)' -> 'Market regime'."""
     return text.split(":")[0].split(" (")[0].replace(" allows BUYs", "").strip()
+
+
+def needs(r: pd.Series, q: BuyQualityConfig, data_stale: bool, market: str = "Nifty") -> list[str]:
+    """What is still missing for a BUY, in a few words each (e.g. 'Breakout: 1.8% away')."""
+    out = []
+    for ok, text in hard_checks(r, q, data_stale, market):
+        if ok:
+            continue
+        if text.startswith("Breakout") and np.isfinite(r.get("To breakout %", np.nan)) and r["To breakout %"] > 0:
+            out.append(f"Breakout: {r['To breakout %']:.1f}% away (close above {r['Breakout level']:,.6g})")
+        elif text.startswith("Volume"):
+            out.append(f"Volume: {r['Volume x avg']:.1f}× → needs {q.volume_multiple:g}×")
+        elif text.startswith("Reward/risk: measured"):
+            continue  # follows automatically from the breakout
+        else:
+            out.append(short_blocker(text))
+    return out

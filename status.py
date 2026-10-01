@@ -5,7 +5,7 @@ from datetime import datetime, time as dtime, timedelta
 
 import pandas as pd
 
-APP_VERSION = "2026.10.01.1"
+APP_VERSION = "2026.10.01.2"
 STALE_AFTER = timedelta(hours=2)
 
 
