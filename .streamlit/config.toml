@@ -1,0 +1,17 @@
+[theme]
+base = "light"
+primaryColor = "#1B2A41"
+backgroundColor = "#EEF2F6"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1B2A41"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+fileWatcherType = "none"
+runOnSave = false
+
+[runner]
+magicEnabled = false   # never auto-print bare expressions onto the page

@@ -1,0 +1,15 @@
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+xgboost>=2.0
+joblib>=1.3
+yfinance>=0.2.40     # daily NSE history via .NS symbols
+requests>=2.31       # NSE pre-open JSON
+pyyaml>=6.0
+streamlit>=1.50      # dashboard (app.py)
+plotly>=5.20
+pytest>=7.4
+# Optional
+# kiteconnect>=5.0      # Zerodha Kite Connect pre-open quotes (read-only)
+# python-dotenv>=1.0    # load KITE_* secrets from a .env file
+# TA-Lib>=0.4.28        # requires the TA-Lib C library installed first

@@ -1,0 +1,8 @@
+__pycache__/
+.env
+outputs/
+logs/
+artifacts/
+data/
+KILL_SWITCH
+config/settings.yaml
