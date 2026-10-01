@@ -601,6 +601,24 @@ def trading_decision(rep) -> None:
         st.warning(f"**Today's trading decision: no new BUY trades; WAIT.**  \n{env}  \n{opp}")
 
 
+def allocation_table(permitted: bool, buys: list[str], crep) -> tuple[pd.DataFrame, list[str]]:
+    """The capital-allocation rows. Every column holds one type (text), so the table serialises cleanly."""
+    rows = [{"Market": "NSE", "Environment": "🟢 favourable" if permitted else "🔴 unfavourable",
+             "Valid setups": str(len(buys)), "Action": "BUY " + ", ".join(buys) if buys else "wait"}]
+    c_buys: list[str] = []
+    if crep is not None:
+        sig = crep.signals
+        c_buys = list(sig.loc[(sig["Action"] == "BUY") & (sig["Qty"] > 0), "Ticker"]) if not sig.empty else []
+        rows.append({"Market": "Crypto", "Environment": ("🟢 favourable" if crep.regime["risk_on"] else "🔴 unfavourable")
+                     + f" (score {crep.regime.get('score', '?')}/100)", "Valid setups": str(len(c_buys)),
+                     "Action": "BUY " + ", ".join(c_buys) if c_buys else "wait"})
+    else:
+        rows.append({"Market": "Crypto", "Environment": "loading", "Valid setups": "–", "Action": "wait"})
+    rows.append({"Market": "Cash", "Environment": "always available", "Valid setups": "–",
+                 "Action": "hold" if not (buys or c_buys) else "keep the rest"})
+    return pd.DataFrame(rows), c_buys
+
+
 def capital_allocation(rep) -> None:
     """Where should new capital go: NSE, crypto, or cash?"""
     if not cfg.crypto.enabled:
@@ -608,19 +626,7 @@ def capital_allocation(rep) -> None:
     from views.engines import get_crypto
     crep = get_crypto().peek()
     permitted, buys = _nse_status(rep)
-    rows = [{"Market": "NSE", "Environment": "🟢 favourable" if permitted else "🔴 unfavourable",
-             "Valid setups": len(buys), "Action": "BUY " + ", ".join(buys) if buys else "wait"}]
-    c_buys = []
-    if crep is not None:
-        sig = crep.signals
-        c_buys = list(sig.loc[(sig["Action"] == "BUY") & (sig["Qty"] > 0), "Ticker"]) if not sig.empty else []
-        rows.append({"Market": "Crypto", "Environment": ("🟢 favourable" if crep.regime["risk_on"] else "🔴 unfavourable")
-                     + f" (score {crep.regime.get('score', '?')}/100)", "Valid setups": len(c_buys),
-                     "Action": "BUY " + ", ".join(c_buys) if c_buys else "wait"})
-    else:
-        rows.append({"Market": "Crypto", "Environment": "loading", "Valid setups": 0, "Action": "wait"})
-    rows.append({"Market": "Cash", "Environment": "always available", "Valid setups": "",
-                 "Action": "hold" if not (buys or c_buys) else "keep the rest"})
+    table, c_buys = allocation_table(permitted, buys, crep)
     if buys or c_buys:
         verdict = ("New capital goes only to the valid setups above, each within its own position and risk limits; "
                    "everything else stays in cash.")
@@ -633,7 +639,7 @@ def capital_allocation(rep) -> None:
         verdict = "Hold new capital in cash: " + "; ".join(why) + ". Don't buy the least-bad candidate."
     with st.container(border=True):
         st.markdown("**Capital allocation for new money**")
-        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+        st.dataframe(table, hide_index=True, width="stretch")
         st.markdown(verdict)
 
 

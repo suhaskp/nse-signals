@@ -8,6 +8,7 @@ niftyindices.com), ``NSE Symbol`` or ``Ticker``. Rows without an NSE symbol
 from __future__ import annotations
 
 import logging
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,7 @@ import pandas as pd
 from config.config import normalize_symbol
 
 logger = logging.getLogger(__name__)
+_REPORTED: set = set()
 SYMBOL_COLUMNS = ("NSE Code", "Symbol", "NSE Symbol", "Ticker", "SYMBOL")
 
 
@@ -33,12 +35,16 @@ def load_symbols(path: Path) -> tuple[list[str], list[str]]:
     symbols = list(dict.fromkeys(normalize_symbol(str(s)) for s in df.loc[has, col]))
     placeholders = [s for s in symbols if s.startswith("DUMMY")]  # NSE uses these during demergers
     symbols = [s for s in symbols if not s.startswith("DUMMY")]
-    if placeholders:
-        logger.info("%s: ignoring NSE placeholder symbols %s", path.name, ", ".join(placeholders))
     skipped = df.loc[~has, name_col].astype(str).tolist()
-    if skipped:
-        logger.warning("%s: %d rows have no NSE symbol and were skipped: %s",
-                       path.name, len(skipped), ", ".join(skipped))
+    # the lists are reloaded on every refresh: report each file's notes once a day, not every few minutes
+    key = (path.name, tuple(placeholders), tuple(skipped), date.today())
+    if key not in _REPORTED:
+        _REPORTED.add(key)
+        if placeholders:
+            logger.info("%s: ignoring NSE placeholder symbols %s", path.name, ", ".join(placeholders))
+        if skipped:
+            logger.warning("%s: %d rows have no NSE symbol and were skipped: %s",
+                           path.name, len(skipped), ", ".join(skipped))
     return symbols, skipped
 
 

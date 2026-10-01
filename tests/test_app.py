@@ -173,3 +173,20 @@ def test_simple_view_footer_and_readiness(tmp_path, monkeypatch):
     side = " ".join(c.value for c in at.sidebar.caption)
     assert "App " in side and "NSE rules" in side and "last refresh" in side and "this computer only" in side
     assert any(t.label == "Simple view" for t in at.sidebar.toggle)
+
+
+def test_no_table_needs_arrow_repair(tmp_path, monkeypatch):
+    """Every table on every page must serialise cleanly (regression: a mixed int/text column logged a traceback
+    on every refresh). Streamlit reports a repaired table through this logger."""
+    import streamlit.dataframe_util as du
+    repaired = []
+    monkeypatch.setattr(du._LOGGER, "info", lambda msg, *a, **k: repaired.append(msg) if "Arrow" in str(msg) else None)
+    monkeypatch.setenv("PIPELINE_DEMO", "1")
+    monkeypatch.chdir(tmp_path)
+    root = Path(__file__).resolve().parents[1]
+    for page in ("app.py", "views/live.py", "views/crypto.py"):
+        at = AppTest.from_file(str(root / page), default_timeout=600).run()
+        assert not at.exception, (page, at.exception)
+    assert not repaired, repaired
+
+
